@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phaser 3 Game</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.8.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: 800,
+            height: 600,
+            physics: {
+                default: 'arcade',
+                arcade: {
+                    debug: false
+                }
+            },
+            scene: {
+                preload: preload,
+                create: create,
+                update: update
+            }
+        };
+
+        let controlTile;
+    let cursors;
+    let tileIndices;
+    let tiles;
+    let originalTileOrder;
+    let youWin;
+    let redSquare;
+
+    const game = new Phaser.Game(config);
+
+    function preload() {
+        for (let i = 1; i <= 16; i++) {
+            this.load.image(`image${i}`, `processed/${i}.png`);
+        }
+    }
+
+    function create() {
+        cursors = this.input.keyboard.createCursorKeys();
+
+        // Create an array of tile indices
+        let tileIndices = [];
+        for (let i = 1; i <= 15; i++) {
+            tileIndices.push(i);
+        }
+
+        //Record the order to check if you win
+        originalTileOrder = tileIndices.slice();
+
+        // Shuffle the array
+        tileIndices = Phaser.Utils.Array.Shuffle(tileIndices);
+
+        // Add the tiles to the scene in a scrambled order
+        tiles = [];
+        for (let y = 0; y < 4; y++) {
+            for (let x = 0; x < 4; x++) {
+                const i = y * 4 + x;
+                // Skip the last tile
+                if (i >= 15) {
+                    continue;
+                }
+                const tile = this.physics.add.image(100 * x + 200, 100 * y + 200, 'image' + tileIndices[i]);
+                tile.setCollideWorldBounds(true);
+                tiles.push(tile);
+
+                // Make boundaries with other tiles so they can't overlap
+                this.physics.add.collider(tile, tiles);
+
+                // setInteractive() makes the tile clickable
+                tile.setInteractive();
+                tile.on('pointerdown', function() {
+                    controlTile = tile;
+                });
+            }
+        }
+
+        
+        
+
+        // Set controlTile to the first tile
+        controlTile = tiles[0];
+
+        //Win text
+        youWin = this.add.text(400, 100, 'Mike! Boruto Needs You.', { fontSize: '34px', fill: '#fff' });
+        youWin.setOrigin(0.5);
+        youWin.setVisible(true);
+
+        // Draw the red square around th 4x4 grid
+        redSquare = this.add.graphics();
+        redSquare.lineStyle(2, 0xff0000);
+        redSquare.strokeRect(150, 150, 400, 400);
+
+        // Set the world bounds
+        this.physics.world.setBounds(150, 150, 400, 400);
+    }
+
+    function update() {
+        if (Phaser.Input.Keyboard.JustDown(cursors.up)) {
+            moveTileToEmptySpot(controlTile, 0, -100);
+        } else if (Phaser.Input.Keyboard.JustDown(cursors.down)) {
+            moveTileToEmptySpot(controlTile, 0, 100);
+        } else if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
+            moveTileToEmptySpot(controlTile, -100, 0);
+        } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
+            moveTileToEmptySpot(controlTile, 100, 0);
+        }
+        //Print the cursor location
+        printCursorLocation();
+    }
+
+    function moveTileToEmptySpot(tile, deltaX, deltaY) {
+        // Check if the tile can move to the empty spot
+        const emptySpotX = tile.x + deltaX;
+        const emptySpotY = tile.y + deltaY;
+        //!getTileAt() returns true if there is no tile at the empty spot
+        if (!getTileAt(emptySpotX, emptySpotY)) {
+            tile.x = emptySpotX;
+            tile.y = emptySpotY;
+        }
+    }
+
+    function getTileAt(x, y) {
+        //find() returns the first element that satisfies the condition
+        return tiles.find(tile => tile.x === x && tile.y === y);
+    }
+
+    function printCursorLocation() {
+        console.log(`Cursor location: ${controlTile.x}, ${controlTile.y}`);
+    }
+
+
+</script>
+</body>
+</html>
